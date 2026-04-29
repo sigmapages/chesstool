@@ -7,178 +7,166 @@ import requests
 import plotly.graph_objects as go
 import plotly.express as px
 
-# --- CONFIG & CONSTANTS ---
+# --- CẤU HÌNH ---
 LICHESS_API_URL = "https://lichess.org/api/games/user/"
 
-st.set_page_config(page_title="Chess Opening Analyzer", layout="wide")
+st.set_page_config(page_title="Chess Master Coach", layout="wide")
 
-# --- CORE FUNCTIONS ---
+# --- HÀM XỬ LÝ DỮ LIỆU ---
 
 @st.cache_data
 def load_eco_database(file_path):
-    """Load file JSON chứa lý thuyết khai cuộc"""
+    """Load JSON và chuẩn hóa Key FEN (chỉ lấy 4 thành phần đầu)"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            raw_data = json.load(f)
+            # Chuẩn hóa: "rnb... 1 1" -> "rnb... b KQkq -"
+            clean_db = {}
+            for fen_key, info in raw_data.items():
+                short_key = " ".join(fen_key.split(' ')[:4])
+                clean_db[short_key] = info
+            return clean_db
     except Exception as e:
         st.error(f"Lỗi load file ECO: {e}")
         return {}
 
 @st.cache_data
 def fetch_lichess_games(username, max_games, color):
-    """Lấy dữ liệu ván đấu từ Lichess API"""
-    params = {
-        "max": max_games,
-        "perfType": "ultraBullet,bullet,blitz,rapid,classical",
-        "opening": "true"
-    }
+    """Kéo dữ liệu từ Lichess"""
+    params = {"max": max_games, "opening": "true"}
     if color != "Both":
         params["color"] = color.lower()
-        
     headers = {"Accept": "application/x-chess-pgn"}
+    
     response = requests.get(f"{LICHESS_API_URL}{username}", params=params, headers=headers)
-    
-    if response.status_code == 404:
-        st.error("Không tìm thấy người chơi này!")
+    if response.status_code != 200:
         return None
-    elif response.status_code == 429:
-        st.error("Bị Lichess limit rồi, đợi xíu nha bro!")
-        return None
-    
     return response.text
 
 def analyze_game(pgn_text, eco_db, username):
-    """Logic xử lý chính để tìm điểm vỡ bài (Breakpoint)"""
+    """Logic Core: Dò FEN để tìm Breakpoint"""
     pgn = io.StringIO(pgn_text)
     game_results = []
     
     while True:
         game = chess.pgn.read_game(pgn)
-        if game is None:
-            break
+        if game is None: break
             
         headers = game.headers
-        player_color = "White" if headers.get("White").lower() == username.lower() else "Black"
-        result = headers.get("Result")
+        player_color = "White" if headers.get("White", "").lower() == username.lower() else "Black"
+        result = headers.get("Result", "*")
         
-        # Mapping kết quả thắng/thua cho người chơi
-        win_status = 0 # 1: Thắng, 0.5: Hòa, 0: Thua
-        if result == "1/2-1/2": win_status = 0.5
-        elif (result == "1-0" and player_color == "White") or (result == "0-1" and player_color == "Black"):
-            win_status = 1
+        # Tính kết quả thắng/thua
+        win_val = 0.5
+        if result == "1-0": win_val = 1 if player_color == "White" else 0
+        elif result == "0-1": win_val = 1 if player_color == "Black" else 0
 
         board = game.board()
-        san_moves = []
-        breakpoint_move = None
-        opening_name = "Unknown"
+        opening_name = "Unknown Opening"
         eco_code = "???"
         is_broken = False
+        breakpoint_move = None
         
         moves = list(game.mainline_moves())
         
         for i, move in enumerate(moves):
-            san_moves.append(board.san(move))
             board.push(move)
+            # Lấy FEN rút gọn (4 phần) để tra cứu
+            current_short_fen = " ".join(board.fen().split(' ')[:4])
             
-            current_path = " ".join(san_moves)
-            
-            if current_path in eco_db:
-                opening_name = eco_db[current_path]["name"]
-                eco_code = eco_db[current_path]["eco"]
+            if current_short_fen in eco_db:
+                opening_name = eco_db[current_short_fen].get("name", "Unknown")
+                eco_code = eco_db[current_short_fen].get("eco", "???")
             else:
-                # Nếu nước này không có trong ECO nhưng nước trước đó có -> Breakpoint
                 is_broken = True
-                breakpoint_move = i + 1
+                breakpoint_move = i + 1 # Nước thứ i+1 bị vỡ bài
                 break
         
         game_results.append({
             "Opening": opening_name,
             "ECO": eco_code,
-            "Status": "Broken" if is_broken else "In Theory",
+            "Status": "Vỡ bài" if is_broken else "Thuộc bài",
             "Breakpoint": breakpoint_move if is_broken else len(moves),
-            "Win": win_status,
-            "Link": headers.get("Site", "")
+            "Win": win_val,
+            "Link": headers.get("Site", "#")
         })
         
     return pd.DataFrame(game_results)
 
-# --- UI RENDERING ---
+# --- GIAO DIỆN (UI) ---
 
-def render_dashboard(df):
-    if df.empty:
-        st.warning("Không có dữ liệu để hiển thị.")
+def render_ui(df):
+    if df is None or df.empty:
+        st.info("Chưa có dữ liệu. Hãy nhập username và nhấn Phân tích.")
         return
 
-    # 1. Metric Columns
-    total_games = len(df)
-    broken_games = len(df[df["Status"] == "Broken"])
-    avg_breakpoint = df[df["Status"] == "Broken"]["Breakpoint"].mean()
+    # Chỉ số hàng đầu
+    total = len(df)
+    broken_df = df[df["Status"] == "Vỡ bài"]
+    broken_count = len(broken_df)
+    avg_break = broken_df["Breakpoint"].mean() if not broken_df.empty else 0
     win_rate = df["Win"].mean() * 100
 
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        # Gauge Chart cho % Vỡ bài
-        broken_pct = (broken_games / total_games) * 100
-        fig_gauge = go.Figure(go.Indicator(
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        fig = go.Figure(go.Indicator(
             mode = "gauge+number",
-            value = broken_pct,
+            value = (broken_count/total)*100,
             title = {'text': "% Vỡ Lý Thuyết"},
-            gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "#EF553B"}}
+            gauge = {'axis': {'range': [0, 100]}, 'bar': {'color': "red"}}
         ))
-        fig_gauge.update_layout(height=250, margin=dict(t=50, b=0, l=10, r=10))
-        st.plotly_chart(fig_gauge, use_container_width=True)
-
-    with col2:
-        st.metric("Vị trí vỡ trung bình", f"Nước thứ {avg_breakpoint:.1f}")
-        st.info("Học sinh thường đi sai lý thuyết ở giai đoạn này.")
-
-    with col3:
-        st.metric("Tỉ lệ thắng tổng quát", f"{win_rate:.1f}%")
-
-    # 2. Histogram
-    st.subheader("📊 Phân bổ nước đi bị vỡ")
-    fig_hist = px.histogram(df[df["Status"] == "Broken"], x="Breakpoint", 
-                           nbins=20, labels={'Breakpoint': 'Nước thứ mấy'},
-                           color_discrete_sequence=['#636EFA'])
-    st.plotly_chart(fig_hist, use_container_width=True)
-
-    # 3. Thống kê chi tiết từng khai cuộc
-    st.subheader("📑 Chi tiết theo Khai cuộc")
-    stats = df.groupby("Opening").agg(
-        So_Van=("Opening", "count"),
-        Ti_Le_Thuoc=("Status", lambda x: (x == "In Theory").sum() / len(x) * 100),
-        Ti_Le_Thang=("Win", "mean")
-    ).reset_index()
+        fig.update_layout(height=250, margin=dict(t=30, b=0))
+        st.plotly_chart(fig, use_container_width=True)
     
-    stats["Ti_Le_Thang"] = stats["Ti_Le_Thang"] * 100
-    st.dataframe(stats.sort_values(by="So_Van", ascending=False), use_container_width=True)
+    c2.metric("Vị trí vỡ TB", f"Nước thứ {avg_break:.1f}")
+    c3.metric("Tỉ lệ thắng", f"{win_rate:.1f}%")
 
-    # 4. Danh sách ván đấu
-    with st.expander("🔍 Xem chi tiết danh sách ván đấu"):
-        st.table(df[["Opening", "ECO", "Status", "Breakpoint", "Link"]])
+    st.divider()
 
-# --- MAIN APP ---
+    # Biểu đồ Histogram
+    st.subheader("📊 Phân bổ thời điểm vỡ bài")
+    if not broken_df.empty:
+        fig_hist = px.histogram(broken_df, x="Breakpoint", labels={'Breakpoint': 'Nước đi thứ'}, color_discrete_sequence=['#ff4b4b'])
+        st.plotly_chart(fig_hist, use_container_width=True)
+    else:
+        st.write("Học sinh này thuộc bài quá, không có ván nào vỡ!")
+
+    # Bảng thống kê
+    st.subheader("📑 Chi tiết các loại khai cuộc")
+    stats = df.groupby("Opening").agg(
+        Ván=("Opening", "count"),
+        Thuộc_Bài=("Status", lambda x: (x == "Thuộc bài").sum() / len(x) * 100),
+        Thắng_Lợi=("Win", "mean")
+    ).reset_index()
+    stats["Thắng_Lợi"] = stats["Thắng_Lợi"] * 100
+    st.dataframe(stats.sort_values(by="Ván", ascending=False), use_container_width=True)
+
+    # Danh sách ván
+    with st.expander("🔗 Xem link các ván đấu cụ thể"):
+        st.dataframe(df[["Opening", "Status", "Breakpoint", "Link"]], use_container_width=True)
+
+# --- MAIN ---
 
 def main():
-    st.sidebar.title("⚙️ Cấu hình")
-    username = st.sidebar.text_input("Username Lichess", placeholder="Ví dụ: DrNykterstein")
-    num_games = st.sidebar.slider("Số lượng ván", 10, 100, 50)
-    color = st.sidebar.selectbox("Phân tích ván cầm quân", ["Both", "White", "Black"])
+    st.sidebar.header("🛠 Cấu hình phân tích")
+    username = st.sidebar.text_input("Lichess Username")
+    num_games = st.sidebar.number_input("Số lượng ván", 10, 200, 50)
+    color = st.sidebar.selectbox("Cầm quân", ["Both", "White", "Black"])
     
+    # Load DB
     eco_db = load_eco_database("eco.json")
 
     if st.sidebar.button("Phân tích ngay"):
         if not username:
-            st.error("Nhập username cái đã bro ơi!")
-            return
-            
-        with st.spinner("Đang kéo data từ Lichess..."):
-            pgn_data = fetch_lichess_games(username, num_games, color)
-            
-            if pgn_data:
-                df_results = analyze_game(pgn_data, eco_db, username)
-                render_dashboard(df_results)
+            st.warning("Nhập tên kì thủ bro ơi!")
+        else:
+            with st.spinner("Đang soi ván đấu..."):
+                pgn_data = fetch_lichess_games(username, num_games, color)
+                if pgn_data:
+                    df = analyze_game(pgn_data, eco_db, username)
+                    render_ui(df)
+                else:
+                    st.error("Không lấy được dữ liệu từ Lichess. Check lại username nhé.")
 
 if __name__ == "__main__":
     main()
