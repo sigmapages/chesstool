@@ -14,7 +14,7 @@ from chessdotcom import Client, get_player_games_by_month_pgn
 Client.request_config['headers']['User-Agent'] = "ChessTool-CheckOpening/1.2 (Contact: thilan89757@gmail.com)"
 
 # --- CONFIG TRANG ---
-st.set_page_config(page_title="Chess Coach Ultimate V4", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="ChessTool CheckOpening", page_icon="🎯", layout="wide")
 
 # --- 2. HÀM LOAD DB (CACHED) ---
 @st.cache_data
