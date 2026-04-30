@@ -24,23 +24,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- PHẦN 3: FIX LỖI SYNTAX GOOGLE ANALYTICS ---
-# --- PHẦN 3: FIX CỨNG GA4 (KHÔNG TỐI ƯU, CHỈ FIX LỖI) ---
+# --- PHẦN 3: FIX LỖI SAI ID GA4 (GIỮ NGUYÊN KHÔNG TỐI ƯU) ---
 GA_ID = "G-GK0V9TT1PV"
 
-# Dùng dấu nháy đơn bao ngoài để không lỗi Syntax như trong ảnh (29)
-ga_script = f"""
-<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+# Dùng dấu cộng nối chuỗi để an toàn tuyệt đối, không lỗi Syntax
+ga_script = """
+<script async src="https://www.googletagmanager.com/gtag/js?id=""" + GA_ID + """"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){{dataLayer.push(arguments);}}
+  function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
   
-  // Ép buộc gửi dữ liệu về đúng ID GA4
-  gtag('config', '{GA_ID}', {{
-    'cookie_flags': 'SameSite=None;Secure',
+  // Lệnh này cực quan trọng: Ép gửi về đúng ID GA4 và bỏ qua các cấu hình cũ
+  gtag('config', '""" + GA_ID + """', {
+    'groups': 'default',
     'send_page_view': true
-  }});
+  });
 </script>
 """
 components.html(ga_script, height=0)
