@@ -1,3 +1,9 @@
+from chessdotcom import Client
+
+# Khai báo thông tin của bro để Chess.com không chặn
+Client.request_config['headers']['User-Agent'] = (
+    "ChessTool-CheckOpening/1.0 (Contact me at thilan89757@gmail.com)"
+)
 import streamlit as st
 import pandas as pd
 import chess.pgn
