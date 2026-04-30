@@ -24,26 +24,27 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- PHẦN 3: SỬ DỤNG ST.COMPONENTS VỚI CHẾ ĐỘ SANDBOX THÂN THIỆN ---
+# --- PHẦN 3: CÁCH "DU KÍCH" - CHỈ 1 DÒNG DUY NHẤT ---
+import streamlit.components.v1 as components
+
 GA_ID = "G-GK0V9TT1PV"
 
-ga_code = f"""
+# Chèn thẳng script tag vào body, không bọc <html> hay <head> gì hết
+ga_du_kich = f"""
     <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){{dataLayer.push(arguments);}}
         gtag('js', new Date());
-        gtag('config', '{GA_ID}', {{
-            'cookie_flags': 'SameSite=None;Secure',
-            'send_page_view': true
-        }});
+        gtag('config', '{GA_ID}');
+        console.log('Targeting GA4: {GA_ID}');
     </script>
 """
 
-# Thay vì dùng components.html trực tiếp, hãy thử bọc nó trong một container 
-# để Streamlit cấp quyền sandbox rộng hơn một chút
-with st.container():
-    components.html(ga_code, height=0)
+# Dùng st.empty để đảm bảo nó được render ra ngay
+placeholder = st.empty()
+with placeholder:
+    components.html(ga_du_kich, height=0)
 
 # --- PHẦN 4: HÀM LOAD CƠ SỞ DỮ LIỆU (DATABASE) ---
 @st.cache_data
