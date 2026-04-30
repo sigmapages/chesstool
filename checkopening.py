@@ -15,6 +15,23 @@ Client.request_config['headers']['User-Agent'] = "ChessTool-CheckOpening/1.2 (Co
 
 # --- CONFIG TRANG ---
 st.set_page_config(page_title="ChessTool CheckOpening", page_icon="🎯", layout="wide")
+import streamlit.components.v1 as components
+
+# Thay G-XXXXXXXXXX bằng mã thật của bro
+GA_ID = "G-GK0V9TT1PV" 
+
+ga_code = f"""
+    <script async src="[https://www.googletagmanager.com/gtag/js?id=](https://www.googletagmanager.com/gtag/js?id=){GA_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        gtag('config', '{GA_ID}');
+    </script>
+"""
+
+# Chèn vào app (ẩn component này đi để không làm xấu giao diện)
+components.html(ga_code, height=0)
 
 # --- 2. HÀM LOAD DB (CACHED) ---
 @st.cache_data
