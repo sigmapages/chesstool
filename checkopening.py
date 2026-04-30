@@ -160,7 +160,6 @@ def analyze_games(pgn_content, opening_db, target_user, move_threshold):
 def main():
     # Sidebar
     st.sidebar.markdown("# ♟️ Check Opening V1.3")
-    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3553/3553143.png", width=100)
     
     with st.sidebar:
         st.write("---")
