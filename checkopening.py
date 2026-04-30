@@ -24,39 +24,26 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- PHẦN 3: "ÉP" GA4 CHẠY QUA HTML COMPONENT ---
+# --- PHẦN 3: SỬ DỤNG ST.COMPONENTS VỚI CHẾ ĐỘ SANDBOX THÂN THIỆN ---
 GA_ID = "G-GK0V9TT1PV"
 
-# Tạo một trang HTML siêu nhỏ chỉ chứa mã GA4
-ga_html_page = f"""
-<!DOCTYPE html>
-<html>
-    <head>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){{dataLayer.push(arguments);}}
-            gtag('js', new Date());
-
-            // Cấu hình nhắm thẳng vào ID của bro
-            gtag('config', '{GA_ID}', {{
-                'page_title': 'Chess Opening Tool',
-                'send_page_view': true
-            }});
-            
-            // Gửi một tín hiệu ping để chắc chắn thẻ đã sống
-            console.log("GA4 - {GA_ID} has been initialized inside iframe.");
-        </script>
-    </head>
-    <body>
-    </body>
-</html>
+ga_code = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        gtag('config', '{GA_ID}', {{
+            'cookie_flags': 'SameSite=None;Secure',
+            'send_page_view': true
+        }});
+    </script>
 """
 
-# Nhét trang HTML này vào App (để height=1 cho an toàn)
-components.html(ga_html_page, height=1)
-
+# Thay vì dùng components.html trực tiếp, hãy thử bọc nó trong một container 
+# để Streamlit cấp quyền sandbox rộng hơn một chút
+with st.container():
+    components.html(ga_code, height=0)
 
 # --- PHẦN 4: HÀM LOAD CƠ SỞ DỮ LIỆU (DATABASE) ---
 @st.cache_data
