@@ -24,25 +24,26 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- PHẦN 3: FIX LỖI SAI ID GA4 (GIỮ NGUYÊN KHÔNG TỐI ƯU) ---
+# --- PHẦN 3: CHÈN GA4 VỚI QUYỀN ƯU TIÊN CAO (FIX LỖI KHÔNG NHẬN THẺ) ---
 GA_ID = "G-GK0V9TT1PV"
 
-# Dùng dấu cộng nối chuỗi để an toàn tuyệt đối, không lỗi Syntax
-ga_script = """
-<script async src="https://www.googletagmanager.com/gtag/js?id=""" + GA_ID + """"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  
-  // Lệnh này cực quan trọng: Ép gửi về đúng ID GA4 và bỏ qua các cấu hình cũ
-  gtag('config', '""" + GA_ID + """', {
-    'groups': 'default',
-    'send_page_view': true
-  });
-</script>
+# Tui dùng script thuần, ép nó chạy ngay khi iframe load
+ga_script = f"""
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){{dataLayer.push(arguments);}}
+        gtag('js', new Date());
+        // Cấu hình nhắm thẳng vào ID của bro, mặc kệ các ID khác
+        gtag('config', '{GA_ID}', {{
+            'send_page_view': true,
+            'cookie_flags': 'SameSite=None;Secure'
+        }});
+    </script>
 """
-components.html(ga_script, height=0)
+
+# Quan trọng: Đặt height=1 thay vì 0 để một số trình duyệt không chặn script ngầm
+components.html(ga_script, height=1)
 
 # --- PHẦN 4: HÀM LOAD CƠ SỞ DỮ LIỆU (DATABASE) ---
 @st.cache_data
