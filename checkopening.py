@@ -120,7 +120,7 @@ def main():
         threshold = st.slider("Threshold (Ngưỡng thuộc)", 1, 25, 8)
         rated = st.toggle("Chỉ ván Rated", value=True)
         st.divider()
-        st.info("Bản V4.1: Đã fix lỗi treo API và lỗi vòng lặp.")
+        st.info("Bản V1.2")
         btn = st.button("🚀 PHÂN TÍCH NGAY", use_container_width=True)
 
     db = load_db("eco.json")
