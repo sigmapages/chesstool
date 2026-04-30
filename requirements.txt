@@ -3,3 +3,4 @@ pandas
 python-chess
 plotly
 requests
+chess.com
