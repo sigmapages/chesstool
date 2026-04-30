@@ -84,7 +84,7 @@ def analyze(pgn_text, db, user, threshold):
 
 # --- GIAO DIỆN ---
 def main():
-    st.sidebar.title("♟️ Chess Master Pro V4")
+    st.sidebar.title("♟️ ChessTool CheckOpening")
     platform = st.sidebar.selectbox("Platform", ["Lichess", "Chess.com"])
     user = st.sidebar.text_input(f"Username {platform}")
     mode = st.sidebar.radio("Chế độ chọn ván", ["Gần nhất", "Ngẫu nhiên"])
