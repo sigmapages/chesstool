@@ -18,10 +18,10 @@ st.set_page_config(page_title="ChessTool CheckOpening", page_icon="🎯", layout
 import streamlit.components.v1 as components
 
 # Thay G-XXXXXXXXXX bằng mã thật của bro
-GA_ID = "G-GK0V9TT1PV" 
+GA_ID = "G-GK0V9TT1PV"
 
 ga_code = f"""
-    <script async src="[https://www.googletagmanager.com/gtag/js?id=](https://www.googletagmanager.com/gtag/js?id=){GA_ID}"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag(){{dataLayer.push(arguments);}}
