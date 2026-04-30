@@ -25,15 +25,22 @@ st.set_page_config(
 )
 
 # --- PHẦN 3: FIX LỖI SYNTAX GOOGLE ANALYTICS ---
-# Tui tách riêng ID và Script để trình duyệt không bị "ngáo" như cái lỗi đỏ lòm ở console
+# --- PHẦN 3: FIX CỨNG GA4 (KHÔNG TỐI ƯU, CHỈ FIX LỖI) ---
 GA_ID = "G-GK0V9TT1PV"
-ga_script = """
-<script async src="https://www.googletagmanager.com/gtag/js?id=""" + GA_ID + """"></script>
+
+# Dùng dấu nháy đơn bao ngoài để không lỗi Syntax như trong ảnh (29)
+ga_script = f"""
+<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
+  function gtag(){{dataLayer.push(arguments);}}
   gtag('js', new Date());
-  gtag('config', '""" + GA_ID + """');
+  
+  // Ép buộc gửi dữ liệu về đúng ID GA4
+  gtag('config', '{GA_ID}', {{
+    'cookie_flags': 'SameSite=None;Secure',
+    'send_page_view': true
+  }});
 </script>
 """
 components.html(ga_script, height=0)
