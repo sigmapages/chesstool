@@ -24,26 +24,39 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- PHẦN 3: CHÈN GA4 VỚI QUYỀN ƯU TIÊN CAO (FIX LỖI KHÔNG NHẬN THẺ) ---
+# --- PHẦN 3: "ÉP" GA4 CHẠY QUA HTML COMPONENT ---
 GA_ID = "G-GK0V9TT1PV"
 
-# Tui dùng script thuần, ép nó chạy ngay khi iframe load
-ga_script = f"""
-    <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){{dataLayer.push(arguments);}}
-        gtag('js', new Date());
-        // Cấu hình nhắm thẳng vào ID của bro, mặc kệ các ID khác
-        gtag('config', '{GA_ID}', {{
-            'send_page_view': true,
-            'cookie_flags': 'SameSite=None;Secure'
-        }});
-    </script>
+# Tạo một trang HTML siêu nhỏ chỉ chứa mã GA4
+ga_html_page = f"""
+<!DOCTYPE html>
+<html>
+    <head>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){{dataLayer.push(arguments);}}
+            gtag('js', new Date());
+
+            // Cấu hình nhắm thẳng vào ID của bro
+            gtag('config', '{GA_ID}', {{
+                'page_title': 'Chess Opening Tool',
+                'send_page_view': true
+            }});
+            
+            // Gửi một tín hiệu ping để chắc chắn thẻ đã sống
+            console.log("GA4 - {GA_ID} has been initialized inside iframe.");
+        </script>
+    </head>
+    <body>
+    </body>
+</html>
 """
 
-# Quan trọng: Đặt height=1 thay vì 0 để một số trình duyệt không chặn script ngầm
-components.html(ga_script, height=1)
+# Nhét trang HTML này vào App (để height=1 cho an toàn)
+components.html(ga_html_page, height=1)
+
 
 # --- PHẦN 4: HÀM LOAD CƠ SỞ DỮ LIỆU (DATABASE) ---
 @st.cache_data
